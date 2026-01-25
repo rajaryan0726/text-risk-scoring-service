@@ -511,4 +511,4 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 **Last Updated**: January 2024  
 **Next Review**: March 2024
 
-> 💡 **Note**: This service is designed to be simple and reliable. When in doubt, restart the service - it's stateless and will recover quickly.
+> 💡 **Note**: This service is designed to be simple and reliable. When in doubt, restart the service - it's stateless and will recover quickly

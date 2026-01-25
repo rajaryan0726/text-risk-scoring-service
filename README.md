@@ -316,3 +316,6 @@ These guarantees make the system suitable for demos and evaluations.
 ## 📄 License
 
 This project is provided for **educational and evaluation purposes only**.
+
+## Reliability & Guarantees
+See `system-guarantees.md` for explicit system guarantees and limitations.
