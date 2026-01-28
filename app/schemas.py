@@ -12,5 +12,6 @@ class OutputSchema(BaseModel):
     risk_score: float
     risk_category: str
     trigger_reasons: List[str]
+    confidence_score: float
     processed_length: int
     errors: Optional[ErrorSchema] = None

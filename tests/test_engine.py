@@ -77,6 +77,16 @@ def test_long_input_truncation():
     result = analyze_text(text)
     assert result["processed_length"] <= 5000
 
+# these are test which are taken for the confidence score
+def test_confidence_determinism():
+    result1 = analyze_text("kill")
+    result2 = analyze_text("kill")
+    assert result1["confidence_score"] == result2["confidence_score"]
+
+def test_low_confidence_ambiguous():
+    result = analyze_text("kill time with friends")
+    assert result["confidence_score"] < 0.7
+
 
 # from app.engine import analyze_text
 
