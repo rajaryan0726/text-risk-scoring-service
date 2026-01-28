@@ -135,6 +135,7 @@ def error_response(code: str, message: str) -> Dict[str, Any]:
     logger.error("Error response generated | code=%s | message=%s", code, message)
     return {
         "risk_score": 0.0,
+        "confidence_score": 0.0,
         "risk_category": "LOW",
         "trigger_reasons": [],
         "processed_length": 0,
@@ -182,6 +183,9 @@ def analyze_text(text: str) -> Dict[str, Any]:
         total_score = 0.0
         reasons = []
 
+        matched_keywords = []
+        matched_categories = set()
+
         # =========================
         # CORE MATCHING LOGIC
         # =========================
@@ -189,7 +193,6 @@ def analyze_text(text: str) -> Dict[str, Any]:
             category_score = 0.0
 
             for keyword in keywords:
-                # Safe word-boundary matching (prevents substring false positives)
                 pattern = r"\b" + re.escape(keyword) + r"\b"
                 if re.search(pattern, text):
                     logger.info(
@@ -197,6 +200,8 @@ def analyze_text(text: str) -> Dict[str, Any]:
                         category, keyword
                     )
                     category_score += KEYWORD_WEIGHT
+                    matched_keywords.append(keyword)
+                    matched_categories.add(category)
                     reasons.append(f"Detected {category} keyword: {keyword}")
 
             # =========================
@@ -231,9 +236,28 @@ def analyze_text(text: str) -> Dict[str, Any]:
         else:
             risk_category = "HIGH"
 
+        # =========================
+        # CONFIDENCE LOGIC (TASK 3 - DAY 2)
+        # =========================
+        confidence = 1.0
+        keyword_count = len(matched_keywords)
+        category_count = len(matched_categories)
+
+        if keyword_count == 0:
+            confidence = 1.0
+        else:
+            if keyword_count == 1:
+                confidence -= 0.3
+            if category_count > 1:
+                confidence -= 0.2
+            if keyword_count <= 2:
+                confidence -= 0.2
+
+        confidence = max(0.0, min(confidence, 1.0))
+
         logger.info(
-            "Final decision | score=%.2f | category=%s",
-            total_score, risk_category
+            "Final decision | score=%.2f | confidence=%.2f | category=%s",
+            total_score, confidence, risk_category
         )
 
         if truncated:
@@ -241,6 +265,7 @@ def analyze_text(text: str) -> Dict[str, Any]:
 
         return {
             "risk_score": round(total_score, 2),
+            "confidence_score": round(confidence, 2),
             "risk_category": risk_category,
             "trigger_reasons": reasons,
             "processed_length": len(text),
@@ -259,6 +284,45 @@ def analyze_text(text: str) -> Dict[str, Any]:
             "INTERNAL_ERROR",
             "Unexpected processing error"
         )
+
+#     adversarial_flags = detect_adversarial_patterns(text)
+#     return {
+#     "risk_score": round(total_score, 2),
+#     "risk_category": risk_category,
+#     "trigger_reasons": reasons,
+#     "processed_length": len(text),
+#     "adversarial_flags": adversarial_flags,  # NEW
+#     "errors": None
+# }
+
+
+    
+# detecting the adversarial patterns
+def detect_adversarial_patterns(text: str) -> list[str]:
+    flags = []
+
+    # Ambiguous phrases
+    ambiguous_phrases = [
+        "kill time",
+        "just joking",
+        "no offense",
+        "purely academic"
+    ]
+
+    for phrase in ambiguous_phrases:
+        if phrase in text:
+            flags.append(f"Ambiguous phrase detected: '{phrase}'")
+
+    # Mixed signals (very simple heuristic)
+    if "hate violence" in text and "kill" in text:
+        flags.append("Mixed signals: condemnation and violent keyword")
+
+    # Excessive repetition (boundary probing)
+    words = text.split()
+    if len(words) > 0 and len(set(words)) / len(words) < 0.4:
+        flags.append("High repetition ratio detected")
+
+    return flags
 
 
 # import re
